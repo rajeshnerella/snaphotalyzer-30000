@@ -143,7 +143,7 @@ def stop_instances(project):
 
 @instances.command('start')
 @click.option('--project', default=None, help="only instances for project (tag Project:<name>)")
-def stop_instances(project):
+def start_instances(project):
     "Start EC2 Instances"
 
     instances = filter_instances(project)
@@ -155,6 +155,26 @@ def stop_instances(project):
         except botocore.exceptions.ClientError as e:
             print("Could not start {0}. ".format(i.id) + str(e))
             continue
+
+    return
+
+@instances.command('reboot')
+@click.option('--project', default=None, help="only instances for project (tag Project:<name>)")
+def reboot_instances(project):
+    "Reboot EC2 Instances"
+
+    instances = filter_instances(project)
+    
+    for i in instances:
+        print("Rebooting {0} ...".format(i.id))
+        if i.state['Name'] == 'running':
+            try:
+                i.reboot()
+            except botocore.exceptions.ClientError as e:
+                print("Could not Reboot {0}. ".format(i.id) + str(e))
+                continue
+        else:
+            print("Could not reboot because it in {0} stage".format(i.state['Name']))
 
     return
 
