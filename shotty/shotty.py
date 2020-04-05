@@ -1,11 +1,12 @@
 import boto3
 import botocore
 import click
+def resource(profile):
+    session = boto3.Session(profile_name= profile)
+    ec2 = session.resource('ec2')
+    return ec2
 
-session = boto3.Session(profile_name='shotty')
-ec2 = session.resource('ec2')
-
-def filter_instances(project):
+def filter_instances(project, ec2):
     instances = []
     
     if project:
@@ -23,7 +24,6 @@ def has_pending_snapshot(volume):
 @click.group()
 def cli():
     """ Shotty manages snapshots"""
-
 @cli.group('snapshots')
 def snapshots():
     """Commands for snapshots"""
@@ -31,10 +31,11 @@ def snapshots():
 @snapshots.command('list')
 @click.option('--project', default=None, help="only snapshots for project (tag Project:<name>)")
 @click.option('--all', 'list_all', default=False, is_flag=True, help="List all snapshots for each volume, not just most recent one")
-def list_snapshots(project, list_all):
+@click.option('--profile', default= 'shotty', help="define profie name")
+def list_snapshots(project, list_all, profile):
     "List EC2 snapshots"
 
-    instances = filter_instances(project)
+    instances = filter_instances(project, resource(profile))
     for i in instances:
         for v in i.volumes.all():
             for s in v.snapshots.all():
@@ -56,10 +57,11 @@ def volumes():
 
 @volumes.command('list')
 @click.option('--project', default=None, help="only volumes for project (tag Project:<name>)")
-def list_volumes(project):
+@click.option('--profile', default= 'shotty', help="define profie name")
+def list_volumes(project, profile):
     "List EC2 volumes"
 
-    instances = filter_instances(project)
+    instances = filter_instances(project, resource(profile))
 
     for i in instances:
         for v in i.volumes.all():
@@ -79,11 +81,12 @@ def instances():
 @instances.command('snapshot', help = "Create snapshots of volumes")
 @click.option('--project', default=None, help="only instances for project (tag Project:<name>)")
 @click.option('--force', 'f_command', default=False, is_flag=True, help="To force a command if no project flag is set")
-def create_snapshot(project, f_command):
+@click.option('--profile', default= 'shotty', help="define profie name")
+def create_snapshot(project, f_command, profile):
     if project != None or f_command:
         "Create snapshots for EC2 Instances"
 
-        instances = filter_instances(project)
+        instances = filter_instances(project, resource(profile))
         for i in instances:
             print("Stopping {0} ...".format(i.id))
 
@@ -111,10 +114,11 @@ def create_snapshot(project, f_command):
 
 @instances.command('list')
 @click.option('--project', default=None, help="only instances for project (tag Project:<name>)")
-def list_instances(project):
+@click.option('--profile', default= 'shotty', help="define profie name")
+def list_instances(project, profile):
     "List EC2 instances"
 
-    instances = filter_instances(project)
+    instances = filter_instances(project, resource(profile))
 
     for i in instances:
         tags = { t['Key']: t['Value'] for t in i.tags or [] }
@@ -131,11 +135,12 @@ def list_instances(project):
 @instances.command('stop')
 @click.option('--project', default=None, help="only instances for project (tag Project:<name>)")
 @click.option('--force', 'f_command', default=False, is_flag=True, help="To force a command if no project flag is set")
-def stop_instances(project, f_command):
+@click.option('--profile', default= 'shotty', help="define profie name")
+def stop_instances(project, f_command, profile):
     if project != None or f_command:
         "Stop EC2 Instances"
 
-        instances = filter_instances(project)
+        instances = filter_instances(project, resource(profile))
         
         for i in instances:
             print("Stopping {0} ...".format(i.id))
@@ -152,11 +157,12 @@ def stop_instances(project, f_command):
 @instances.command('start')
 @click.option('--project', default=None, help="only instances for project (tag Project:<name>)")
 @click.option('--force', 'f_command', default=False, is_flag=True, help="To force a command if no project flag is set")
-def start_instances(project, f_command):
+@click.option('--profile', default= 'shotty', help="define profie name")
+def start_instances(project, f_command, profile):
     if project != None or f_command:
         "Start EC2 Instances"
 
-        instances = filter_instances(project)
+        instances = filter_instances(project, resource(profile))
         
         for i in instances:
             print("Starting {0} ...".format(i.id))
@@ -173,11 +179,12 @@ def start_instances(project, f_command):
 @instances.command('reboot')
 @click.option('--project', default=None, help="only instances for project (tag Project:<name>)")
 @click.option('--force', 'f_command', default=False, is_flag=True, help="To force a command if no project flag is set")
-def reboot_instances(project, f_command):
+@click.option('--profile', default= 'shotty', help="define profie name")
+def reboot_instances(project, f_command, profile):
     if project != None or f_command:
         "Reboot EC2 Instances"
 
-        instances = filter_instances(project)
+        instances = filter_instances(project, resource(profile))
         
         for i in instances:
             print("Rebooting {0} ...".format(i.id))
