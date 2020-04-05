@@ -1,6 +1,7 @@
 import boto3
 import botocore
 import click
+
 def resource(profile):
     session = boto3.Session(profile_name= profile)
     ec2 = session.resource('ec2')
@@ -24,6 +25,7 @@ def has_pending_snapshot(volume):
 @click.group()
 def cli():
     """ Shotty manages snapshots"""
+
 @cli.group('snapshots')
 def snapshots():
     """Commands for snapshots"""
