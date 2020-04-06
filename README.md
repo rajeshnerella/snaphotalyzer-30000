@@ -14,8 +14,10 @@ shotty uses the configuration file created by the AWS cli. e.g.
 
 ## Running 
 
-`pipenv run "python shotty/shotty.py <command> <subcommand> <--project=PROJECT>"`
+`pipenv run "python shotty/shotty.py <--profile=Name> <command> <subcommand> <--project=PROJECT>" <--force>`
 
+*profile* is for using different aws profiles
 *command* is instances,volumes, or snapshots
 *subcommand* - depends on command  
 *project* is optional
+*force* is to force anything without project flag
