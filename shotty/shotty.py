@@ -153,23 +153,32 @@ def list_instances(info, project):
 @pass_info
 @click.option('--project', default=None, help="only instances for project (tag Project:<name>)")
 @click.option('--force', 'f_command', default=False, is_flag=True, help="To force a command if no project flag is set")
-def stop_instances(info, project, f_command):
-    if project != None or f_command:
-        "Stop EC2 Instances"
+@click.option('--instance', default=None, help="only for specified instance id")
+def stop_instances(info, project, f_command, instance):
+    if not instance:
+        if project != None or f_command:
+            "Stop EC2 Instances"
 
-        instances = filter_instances(project, resource(info.profile))
-        
-        for i in instances:
-            print("Stopping {0} ...".format(i.id))
-            try:
-                i.stop()
-            except botocore.exceptions.ClientError as e:
-                print("Could not stop {0}. ".format(i.id) + str(e))
-                continue
+            instances = filter_instances(project, resource(info.profile))
+            
+            for i in instances:
+                print("Stopping {0} ...".format(i.id))
+                try:
+                    i.stop()
+                except botocore.exceptions.ClientError as e:
+                    print("Could not stop {0}. ".format(i.id) + str(e))
+                    continue
 
-        return
+            return
+        else:
+            print(" There is no project flag or force flag for the command")
     else:
-        print(" There is no project flag or force flag for the command")
+        inst = resource(info.profile).Instance(instance)
+        print("Stopping {0} ...".format(inst.id))
+        try:
+            inst.stop()
+        except botocore.exceptions.ClientError as e:
+            print("Colud not Stop {0}. ".format(inst.id) + str(e))
 
 @instances.command('start')
 @pass_info
@@ -200,7 +209,7 @@ def start_instances(info, project, f_command, instance):
         try:
             inst.start()
         except botocore.exceptions.ClientError as e:
-            print("Colud not Reboot {0}. ".format(inst.id) + str(e))
+            print("Colud not start {0}. ".format(inst.id) + str(e))
         
 
 @instances.command('reboot')
