@@ -95,39 +95,66 @@ def instances():
 @pass_info
 @click.option('--project', default=None, help="only instances for project (tag Project:<name>)")
 @click.option('--force', 'f_command', default=False, is_flag=True, help="To force a command if no project flag is set")
-def create_snapshot(info, project, f_command):
-    if project != None or f_command:
-        "Create snapshots for EC2 Instances"
+@click.option('--instance', default=None, help="only for specified instance id")
+def create_snapshot(info, project, f_command, instance):
+    if not instance:
+        if project != None or f_command:
+            "Create snapshots for EC2 Instances"
 
-        instances = filter_instances(project, resource(info.profile))
-        for i in instances:
-            print("Stopping {0} ...".format(i.id))
+            instances = filter_instances(project, resource(info.profile))
+            for i in instances:
+                print("Stopping {0} ...".format(i.id))
 
-            try:
-                i.stop()
-                i.wait_until_stopped()
+                try:
+                    i.stop()
+                    i.wait_until_stopped()
 
-                for v in i.volumes.all():
-                    if has_pending_snapshot(v):
-                        print("Skipping {0}, snapshot already in progress".format(v.id))
-                        continue
+                    for v in i.volumes.all():
+                        if has_pending_snapshot(v):
+                            print("Skipping {0}, snapshot already in progress".format(v.id))
+                            continue
+                        
+                        print("Creating snapshot of {0}".format(v.id))
+                        v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
                     
-                    print("Creating snapshot of {0}".format(v.id))
-                    v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                    print("Starting {0} ...".format(i.id))
+                    
+                    i.start()
+                    i.wait_until_running()
+                except botocore.exceptions.ClientError as e:
+                    print("Could not stop {0}. ".format(i.id) + str(e))
+                    continue
+
+            print("Job's done!")
+
+            return
+        else:
+            print(" There is no project flag or force flag for the command")
+    else:
+        inst = resource(info.profile).Instance(instance)
+        print("Stopping {0} ...".format(inst.id))
+
+        try:
+            inst.stop()
+            inst.wait_until_stopped()
+
+            for v in inst.volumes.all():
+                if has_pending_snapshot(v):
+                    print("Skipping {0}, snapshot already in progress".format(v.id))
+                    continue
                 
-                print("Starting {0} ...".format(i.id))
-                
-                i.start()
-                i.wait_until_running()
-            except botocore.exceptions.ClientError as e:
-                print("Could not stop {0}. ".format(i.id) + str(e))
-                continue
+                print("Creating snapshot of {0}".format(v.id))
+                v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+            
+            print("Starting {0} ...".format(inst.id))
+            
+            inst.start()
+            inst.wait_until_running()
+        except botocore.exceptions.ClientError as e:
+            print("Could not stop {0}. ".format(i.id) + str(e))
 
         print("Job's done!")
 
-        return
-    else:
-        print(" There is no project flag or force flag for the command")
 
 @instances.command('list')
 @pass_info
