@@ -70,22 +70,33 @@ def volumes():
 @volumes.command('list')
 @pass_info
 @click.option('--project', default=None, help="only volumes for project (tag Project:<name>)")
+@click.option('--instance', default=None, help="only for specified instance id")
+def list_volumes(info, project, instance):
+    if not instance:
+        "List EC2 volumes"
 
-def list_volumes(info, project):
-    "List EC2 volumes"
+        instances = filter_instances(project, resource(info.profile))
 
-    instances = filter_instances(project, resource(info.profile))
-
-    for i in instances:
-        for v in i.volumes.all():
+        for i in instances:
+            for v in i.volumes.all():
+                print(", ".join((
+                    v.id,
+                    i.id,
+                    v.state,
+                    str(v.size) + "GiB",
+                    v.encrypted and "Encrypted" or "Not Encrypted"
+                    )))
+        return
+    else:
+        inst = resource(info.profile).Instance(instance)
+        for v in inst.volumes.all():
             print(", ".join((
                 v.id,
-                i.id,
+                inst.id,
                 v.state,
                 str(v.size) + "GiB",
                 v.encrypted and "Encrypted" or "Not Encrypted"
                 )))
-    return
 
 @cli.group('instances')
 def instances():
