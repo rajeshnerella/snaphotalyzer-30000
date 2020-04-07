@@ -44,24 +44,39 @@ def snapshots():
 @pass_info
 @click.option('--project', default=None, help="only snapshots for project (tag Project:<name>)")
 @click.option('--all', 'list_all', default=False, is_flag=True, help="List all snapshots for each volume, not just most recent one")
-def list_snapshots(info, project, list_all):
-    "List EC2 snapshots"
+@click.option('--instance', default=None, help="only for specified instance id")
+def list_snapshots(info, project, list_all, instance):
+    if not instance:
+        "List EC2 snapshots"
 
-    instances = filter_instances(project, resource(info.profile))
-    for i in instances:
-        for v in i.volumes.all():
+        instances = filter_instances(project, resource(info.profile))
+        for i in instances:
+            for v in i.volumes.all():
+                for s in v.snapshots.all():
+                    print(", ".join((
+                        s.id,
+                        v.id,
+                        i.id,
+                        s.state,
+                        s.progress,
+                        s.start_time.strftime("%c")
+                        )))
+                    if s.state == 'completed' and not list_all: break
+                    
+        return
+    else:
+        inst = resource(info.profile).Instance(instance)
+        for v in inst.volumes.all():
             for s in v.snapshots.all():
                 print(", ".join((
                     s.id,
                     v.id,
-                    i.id,
+                    inst.id,
                     s.state,
                     s.progress,
                     s.start_time.strftime("%c")
                     )))
                 if s.state == 'completed' and not list_all: break
-                
-    return
 
 @cli.group('volumes')
 def volumes():
