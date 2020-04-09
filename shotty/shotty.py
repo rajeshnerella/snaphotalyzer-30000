@@ -132,33 +132,44 @@ def create_snapshot(info, project, f_command, instance, age):
             instances = filter_instances(project, resource(info.profile))
             for i in instances:
                 if i.state['Name'] == 'running':
-                    print("Stopping {0} ...".format(i.id))
-
-                    try:
-                        i.stop()
-                        i.wait_until_stopped()
-
-                        for v in i.volumes.all():
-                            if has_pending_snapshot(v):
-                                print("Skipping {0}, snapshot already in progress".format(v.id))
-                                continue
+                    for v in i.volumes.all():
+                        if has_pending_snapshot(v):
+                            print("Skipping {0}, snapshot already in progress".format(v.id))
+                            continue
+                        k = [ s for s in v.snapshots.all()]
+                        if not k == []:
                             for s in v.snapshots.all():
                                 tz_info = s.start_time.tzinfo
                                 diff = datetime.datetime.now(tz_info)-s.start_time
                                 if diff.days >= age:
-                                    print("Creating snapshot of {0}".format(v.id))
-                                    v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                                    try:
+                                        print("Stopping {0} ...".format(i.id))
+                                        i.stop()
+                                        i.wait_until_stopped()
+                                        print("Creating snapshot of {0}".format(v.id))
+                                        v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                                        print("Starting {0} ...".format(i.id))
+                                        i.start()
+                                        i.wait_until_running()
+                                    except botocore.exceptions.ClientError as e:
+                                        print("Could not stop {0}. ".format(i.id) + str(e))
+                                        continue
                                 else:
                                     print("Snapshot is not older than given days")
                                 if s.state == 'completed':break
-                        
-                        print("Starting {0} ...".format(i.id))
-                        
-                        i.start()
-                        i.wait_until_running()
-                    except botocore.exceptions.ClientError as e:
-                        print("Could not stop {0}. ".format(i.id) + str(e))
-                        continue
+                        else:
+                            try:
+                                print("Stopping {0} ...".format(i.id))
+                                i.stop()
+                                i.wait_until_stopped()
+                                print("Creating snapshot of {0}".format(v.id))
+                                v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                                print("Starting {0} ...".format(i.id))
+                                i.start()
+                                i.wait_until_running()
+                            except botocore.exceptions.ClientError as e:
+                                print("Could not stop {0}. ".format(i.id) + str(e))
+                                continue
                 else:
                     try:
                         for v in i.volumes.all():
@@ -187,32 +198,42 @@ def create_snapshot(info, project, f_command, instance, age):
     else:
         inst = resource(info.profile).Instance(instance)
         if inst.state['Name'] == 'running':
-            print("Stopping {0} ...".format(inst.id))
-            
-            try:
-                inst.stop()
-                inst.wait_until_stopped()
-
-                for v in inst.volumes.all():
-                    if has_pending_snapshot(v):
-                        print("Skipping {0}, snapshot already in progress".format(v.id))
-                        continue
+            for v in inst.volumes.all():
+                if has_pending_snapshot(v):
+                    print("Skipping {0}, snapshot already in progress".format(v.id))
+                    continue
+                k = [ s for s in v.snapshots.all()]
+                if not k == []:
                     for s in v.snapshots.all():
                         tz_info = s.start_time.tzinfo
                         diff = datetime.datetime.now(tz_info)-s.start_time
                         if diff.days >= age:
-                            print("Creating snapshot of {0}".format(v.id))
-                            v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                            try:
+                                print("Stopping {0} ...".format(inst.id))
+                                inst.stop()
+                                inst.wait_until_stopped()
+                                print("Creating snapshot of {0}".format(v.id))
+                                v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                                print("Starting {0} ...".format(inst.id))
+                                inst.start()
+                                inst.wait_until_running()
+                            except botocore.exceptions.ClientError as e:
+                                print("Could not stop {0}. ".format(inst.id) + str(e))
                         else:
                             print("Snapshot is not older than given days")
                         if s.state == 'completed':break
-                
-                print("Starting {0} ...".format(inst.id))
-                
-                inst.start()
-                inst.wait_until_running()
-            except botocore.exceptions.ClientError as e:
-                print("Could not stop {0}. ".format(i.id) + str(e))
+                else:
+                    try:
+                        print("Stopping {0} ...".format(inst.id))
+                        inst.stop()
+                        inst.wait_until_stopped()
+                        print("Creating snapshot of {0}".format(v.id))
+                        v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                        print("Starting {0} ...".format(inst.id))
+                        inst.start()
+                        inst.wait_until_running()
+                    except botocore.exceptions.ClientError as e:
+                        print("Could not stop {0}. ".format(inst.id) + str(e))
         else:
             try:
                 for v in inst.volumes.all():
@@ -230,7 +251,7 @@ def create_snapshot(info, project, f_command, instance, age):
                         if s.state == 'completed':break
 
             except botocore.exceptions.ClientError as e:
-                print("Could not stop {0}. ".format(i.id) + str(e))
+                print("Could not stop {0}. ".format(inst.id) + str(e))
         print("Job's done!")
 
 @instances.command('list')
@@ -351,7 +372,7 @@ def reboot_instances(info, project, f_command, instance):
             except botocore.exceptions.ClientError as e:
                 print("Colud not Reboot {0}. ".format(inst.id) + str(e))
         else:
-            print("Could not reboot because it in {0} stage".format(i.state['Name']))
+            print("Could not reboot because it in {0} stage".format(inst.state['Name']))
 
 if __name__ == '__main__':
     cli()
