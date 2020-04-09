@@ -14,7 +14,7 @@ shotty uses the configuration file created by the AWS cli. e.g.
 
 ## Running 
 
-`pipenv run "python shotty/shotty.py <--profile=Name> <command> <subcommand> <--project=PROJECT>" <--force> <--instance> <--all>`
+`pipenv run "python shotty/shotty.py <--profile=Name> <command> <subcommand> <--project=PROJECT>" <--force> <--instance> <--all> <--age>`
 
 *profile* is for using different aws profiles
 *command* is instances,volumes, or snapshots
@@ -23,3 +23,4 @@ shotty uses the configuration file created by the AWS cli. e.g.
 *force* is to force anything without project flag
 *instance* is for specific instance id
 *all* is used for listing all snapshots
+*age* is used for creating snapshot which are older than given age in days

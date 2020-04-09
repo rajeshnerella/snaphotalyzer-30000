@@ -1,6 +1,7 @@
 import boto3
 import botocore
 import click
+import datetime
 
 class Info(object):
 
@@ -122,7 +123,8 @@ def instances():
 @click.option('--project', default=None, help="only instances for project (tag Project:<name>)")
 @click.option('--force', 'f_command', default=False, is_flag=True, help="To force a command if no project flag is set")
 @click.option('--instance', default=None, help="only for specified instance id")
-def create_snapshot(info, project, f_command, instance):
+@click.option('--age', default=None, required= True, type= int, help="age in days to create new snapshot")
+def create_snapshot(info, project, f_command, instance, age):
     if not instance:
         if project != None or f_command:
             "Create snapshots for EC2 Instances"
@@ -140,9 +142,15 @@ def create_snapshot(info, project, f_command, instance):
                             if has_pending_snapshot(v):
                                 print("Skipping {0}, snapshot already in progress".format(v.id))
                                 continue
-                            
-                            print("Creating snapshot of {0}".format(v.id))
-                            v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                            for s in v.snapshots.all():
+                                tz_info = s.start_time.tzinfo
+                                diff = datetime.datetime.now(tz_info)-s.start_time
+                                if diff.days >= age:
+                                    print("Creating snapshot of {0}".format(v.id))
+                                    v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                                else:
+                                    print("Snapshot is not older than given days")
+                                if s.state == 'completed':break
                         
                         print("Starting {0} ...".format(i.id))
                         
@@ -157,9 +165,16 @@ def create_snapshot(info, project, f_command, instance):
                             if has_pending_snapshot(v):
                                 print("Skipping {0}, snapshot already in progress".format(v.id))
                                 continue
+                            for s in v.snapshots.all():
+                                tz_info = s.start_time.tzinfo
+                                diff = datetime.datetime.now(tz_info)-s.start_time
+                                if diff.days >= age:
+                                    print("Creating snapshot of {0}".format(v.id))
+                                    v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                                else:
+                                    print("Snapshot is not older than given days")
+                                if s.state == 'completed':break
                             
-                            print("Creating snapshot of {0}".format(v.id))
-                            v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
                     except botocore.exceptions.ClientError as e:
                         print("Could not stop {0}. ".format(i.id) + str(e))
                         continue
@@ -182,9 +197,15 @@ def create_snapshot(info, project, f_command, instance):
                     if has_pending_snapshot(v):
                         print("Skipping {0}, snapshot already in progress".format(v.id))
                         continue
-                    
-                    print("Creating snapshot of {0}".format(v.id))
-                    v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                    for s in v.snapshots.all():
+                        tz_info = s.start_time.tzinfo
+                        diff = datetime.datetime.now(tz_info)-s.start_time
+                        if diff.days >= age:
+                            print("Creating snapshot of {0}".format(v.id))
+                            v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                        else:
+                            print("Snapshot is not older than given days")
+                        if s.state == 'completed':break
                 
                 print("Starting {0} ...".format(inst.id))
                 
@@ -198,9 +219,16 @@ def create_snapshot(info, project, f_command, instance):
                     if has_pending_snapshot(v):
                         print("Skipping {0}, snapshot already in progress".format(v.id))
                         continue
-                    
-                    print("Creating snapshot of {0}".format(v.id))
-                    v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                    for s in v.snapshots.all():
+                        tz_info = s.start_time.tzinfo
+                        diff = datetime.datetime.now(tz_info)-s.start_time
+                        if diff.days >= age:
+                            print("Creating snapshot of {0}".format(v.id))
+                            v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                        else:
+                            print("Snapshot is not older than given days")
+                        if s.state == 'completed':break
+
             except botocore.exceptions.ClientError as e:
                 print("Could not stop {0}. ".format(i.id) + str(e))
         print("Job's done!")
