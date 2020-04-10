@@ -126,7 +126,7 @@ def instances():
 @click.option('--project', default=None, help="only instances for project (tag Project:<name>)")
 @click.option('--force', 'f_command', default=False, is_flag=True, help="To force a command if no project flag is set")
 @click.option('--instance', default=None, help="only for specified instance id")
-@click.option('--age', default=None, required= True, type= int, help="age in days to create new snapshot")
+@click.option('--age', default=None, required= True, type= int, help="age in days to create new snapshot which as older snapshot than the given days")
 def create_snapshot(info, project, f_command, instance, age):
     if not instance:
         if project != None or f_command:
@@ -285,6 +285,7 @@ def list_instances(info, project):
 @click.option('--force', 'f_command', default=False, is_flag=True, help="To force a command if no project flag is set")
 @click.option('--instance', default=None, help="only for specified instance id")
 def stop_instances(info, project, f_command, instance):
+    "Stops the EC2 Instances"
     if not instance:
         if project != None or f_command:
             "Stop EC2 Instances"
@@ -316,6 +317,7 @@ def stop_instances(info, project, f_command, instance):
 @click.option('--force', 'f_command', default=False, is_flag=True, help="To force a command if no project flag is set")
 @click.option('--instance', default=None, help="only for specified instance id")
 def start_instances(info, project, f_command, instance):
+    "Starts the EC2 Instances"
     if not instance:
         if project != None or f_command:
             "Start EC2 Instances"
@@ -348,6 +350,7 @@ def start_instances(info, project, f_command, instance):
 @click.option('--force', 'f_command', default=False, is_flag=True, help="To force a command if no project flag is set")
 @click.option('--instance', default=None, help="only for specified instance id")
 def reboot_instances(info, project, f_command, instance):
+    "Reboots the EC2 Instances"
     if not instance:
         if project != None or f_command:
             "Reboot EC2 Instances"
