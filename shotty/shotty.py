@@ -7,11 +7,12 @@ class Info(object):
 
     def __init__(self):
         self.profile = False
+        self.region = False
 
 pass_info = click.make_pass_decorator(Info, ensure=True)
 
-def resource(profile):
-    session = boto3.Session(profile_name= profile)
+def resource(profile, region):
+    session = boto3.Session(profile_name= profile, region_name= region)
     ec2 = session.resource('ec2')
     return ec2
 
@@ -32,10 +33,12 @@ def has_pending_snapshot(volume):
 
 @click.group()
 @click.option('--profile', default= 'shotty', help="define profie name")
+@click.option('--region', default= 'ca-central-1', help="define region name")
 @pass_info
-def cli(info, profile):
+def cli(info, profile, region):
     """ Shotty manages snapshots"""
     info.profile= profile
+    info.region = region
 
 @cli.group('snapshots')
 def snapshots():
@@ -50,7 +53,7 @@ def list_snapshots(info, project, list_all, instance):
     if not instance:
         "List EC2 snapshots"
 
-        instances = filter_instances(project, resource(info.profile))
+        instances = filter_instances(project, resource(info.profile, info.region))
         for i in instances:
             for v in i.volumes.all():
                 for s in v.snapshots.all():
@@ -66,7 +69,7 @@ def list_snapshots(info, project, list_all, instance):
                     
         return
     else:
-        inst = resource(info.profile).Instance(instance)
+        inst = resource(info.profile, info.region).Instance(instance)
         for v in inst.volumes.all():
             for s in v.snapshots.all():
                 print(", ".join((
@@ -91,7 +94,7 @@ def list_volumes(info, project, instance):
     if not instance:
         "List EC2 volumes"
 
-        instances = filter_instances(project, resource(info.profile))
+        instances = filter_instances(project, resource(info.profile, info.region))
 
         for i in instances:
             for v in i.volumes.all():
@@ -104,7 +107,7 @@ def list_volumes(info, project, instance):
                     )))
         return
     else:
-        inst = resource(info.profile).Instance(instance)
+        inst = resource(info.profile, info.region).Instance(instance)
         for v in inst.volumes.all():
             print(", ".join((
                 v.id,
@@ -129,7 +132,7 @@ def create_snapshot(info, project, f_command, instance, age):
         if project != None or f_command:
             "Create snapshots for EC2 Instances"
 
-            instances = filter_instances(project, resource(info.profile))
+            instances = filter_instances(project, resource(info.profile, info.region))
             for i in instances:
                 if i.state['Name'] == 'running':
                     for v in i.volumes.all():
@@ -176,27 +179,29 @@ def create_snapshot(info, project, f_command, instance, age):
                             if has_pending_snapshot(v):
                                 print("Skipping {0}, snapshot already in progress".format(v.id))
                                 continue
-                            for s in v.snapshots.all():
-                                tz_info = s.start_time.tzinfo
-                                diff = datetime.datetime.now(tz_info)-s.start_time
-                                if diff.days >= age:
-                                    print("Creating snapshot of {0}".format(v.id))
-                                    v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
-                                else:
-                                    print("Snapshot is not older than given days")
-                                if s.state == 'completed':break
-                            
+                            k = [ s for s in v.snapshots.all()]
+                            if not k == []:
+                                for s in v.snapshots.all():
+                                    tz_info = s.start_time.tzinfo
+                                    diff = datetime.datetime.now(tz_info)-s.start_time
+                                    if diff.days >= age:
+                                        print("Creating snapshot of {0}".format(v.id))
+                                        v.create_snapshot(Description="Created by SnapshotAlyzer 3000")
+                                    else:
+                                        print("Snapshot is not older than given days")
+                                    if s.state == 'completed':break
+                            else:
+                                print("Creating snapshot of {0}".format(v.id))
+                                v.create_snapshot(Description="Created by SnapshotAlyzer 3000")                       
                     except botocore.exceptions.ClientError as e:
                         print("Could not stop {0}. ".format(i.id) + str(e))
                         continue
-
             print("Job's done!")
-
             return
         else:
             print(" There is no project flag or force flag for the command")
     else:
-        inst = resource(info.profile).Instance(instance)
+        inst = resource(info.profile, info.region).Instance(instance)
         if inst.state['Name'] == 'running':
             for v in inst.volumes.all():
                 if has_pending_snapshot(v):
@@ -260,7 +265,7 @@ def create_snapshot(info, project, f_command, instance, age):
 def list_instances(info, project):
     "List EC2 instances"
 
-    instances = filter_instances(project, resource(info.profile))
+    instances = filter_instances(project, resource(info.profile, info.region))
 
     for i in instances:
         tags = { t['Key']: t['Value'] for t in i.tags or [] }
@@ -284,7 +289,7 @@ def stop_instances(info, project, f_command, instance):
         if project != None or f_command:
             "Stop EC2 Instances"
 
-            instances = filter_instances(project, resource(info.profile))
+            instances = filter_instances(project, resource(info.profile, info.region))
             
             for i in instances:
                 print("Stopping {0} ...".format(i.id))
@@ -298,7 +303,7 @@ def stop_instances(info, project, f_command, instance):
         else:
             print(" There is no project flag or force flag for the command")
     else:
-        inst = resource(info.profile).Instance(instance)
+        inst = resource(info.profile, info.region).Instance(instance)
         print("Stopping {0} ...".format(inst.id))
         try:
             inst.stop()
@@ -315,7 +320,7 @@ def start_instances(info, project, f_command, instance):
         if project != None or f_command:
             "Start EC2 Instances"
 
-            instances = filter_instances(project, resource(info.profile))
+            instances = filter_instances(project, resource(info.profile,info.region))
             
             for i in instances:
                 print("Starting {0} ...".format(i.id))
@@ -329,7 +334,7 @@ def start_instances(info, project, f_command, instance):
         else:
             print(" There is no project flag or force flag for the command")
     else:
-        inst = resource(info.profile).Instance(instance)
+        inst = resource(info.profile, info.region).Instance(instance)
         print("Starting {0} ...".format(inst.id))
         try:
             inst.start()
@@ -347,7 +352,7 @@ def reboot_instances(info, project, f_command, instance):
         if project != None or f_command:
             "Reboot EC2 Instances"
 
-            instances = filter_instances(project, resource(info.profile))
+            instances = filter_instances(project, resource(info.profile, info.region))
             
             for i in instances:
                 print("Rebooting {0} ...".format(i.id))
@@ -364,7 +369,7 @@ def reboot_instances(info, project, f_command, instance):
         else:
             print(" There is no project flag or force flag for the command")
     else:
-        inst = resource(info.profile).Instance(instance)
+        inst = resource(info.profile, info.region).Instance(instance)
         print("Rebooting {0} ...".format(inst.id))
         if inst.state['Name'] == 'running':
             try:
